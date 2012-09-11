@@ -1,8 +1,8 @@
 package RDF::Query::Functions::Buzzword::DateTime;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
-use common::sense;
+use strict;
 use DateTime;
 use DateTime::Format::Duration;
 use DateTime::Format::ISO8601;
@@ -15,7 +15,7 @@ sub _NS
 	my ($prefix) = @_;
 	return sub {
 		return $prefix . $_[0];
-		};
+	};
 }
 
 sub _DateTime
@@ -262,47 +262,43 @@ RDF::Query::Functions::Buzzword::DateTime - plugin for buzzword.org.uk datetime 
 
 =head1 SYNOPSIS
 
-B<TODO> - update synopsis
-
-  use RDF::TrineShortcuts qw[:all];
-  use Data::Dumper;
+  use RDF::TrineX::Functions -shortcuts;
+  use RDF::Query;
   
-  my $data = rdf_parse(<<'TURTLE', type=>'turtle');
+  my $data = rdf_parse(<<'TURTLE', type=>'turtle', base=>$baseuri);
   @prefix foaf: <http://xmlns.com/foaf/0.1/> .
   @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-  @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-
+  
   <http://tobyinkster.co.uk/#i>
-    foaf:birthday "1980-06-01"^^xsd:date .
+    foaf:birthday "1980-06-01"^^<http://www.w3.org/2001/XMLSchema#date> .
   TURTLE
-
-  $r = rdf_query(<<'SPARQL', $data);
+  
+  my $query = RDF::Query->new(<<'SPARQL');
   PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  PREFIX util: <http://buzzword.org.uk/2011/functions/util#>
   PREFIX dt:   <http://buzzword.org.uk/2011/functions/datetime#>
   PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
   SELECT
     (dt:now() AS ?now)
     (dt:today() AS ?today)
     ?bday
-    (dt:format_duration(
-      dt:difference(dt:now(), ?bday),
-      "%Y years, %m months")
-      AS ?age)
+    (dt:format_duration(dt:difference(dt:now(), ?bday), "%Y years, %m months") AS ?age)
     (dt:add(?bday, "P10Y"^^xsd:duration) AS ?tenthbday)
+    (dt:strtotime("yesterday morning"@en) AS ?yesterdaymorning)
     (dt:strftime(?bday, "%a, %d %b %Y"@en) AS ?fmtbday)
-    (dt:strtodate("1/6/1980"@en-us) AS ?guessamericandate)
-    (dt:strtodate("1/6/1980"@en) AS ?guessenglishdate)
+    (dt:strtodate("1/6/1980"@en-gb) AS ?guessbday)
   WHERE
   {
     ?person foaf:birthday ?bday .
   }
   SPARQL
-  
-  print Dumper(flatten_iterator($r, literal_as=>'ntriples'));
+
+  print $query->execute($data)->as_xml;
 
 =head1 DESCRIPTION
 
-This is a plugin for RDF::Query providing a number of extension functions.
+This is a plugin for RDF::Query providing a number of extension functions
+for dates and times.
 
 =over
 
@@ -356,6 +352,12 @@ Like C<now> but returns an xsd:date.
 
 =back
 
+=begin trustme
+
+=item C<install>
+
+=end trustme
+
 =head1 SEE ALSO
 
 L<RDF::Query>,
@@ -363,7 +365,7 @@ L<RDF::Query::Functions::Buzzword::Util>.
 
 L<DateTime>.
 
-L<http://perlrdf.org/>.
+L<http://www.perlrdf.org/>.
 
 =head1 AUTHOR
 
@@ -371,7 +373,7 @@ Toby Inkster E<lt>tobyink@cpan.orgE<gt>.
 
 =head1 COPYRIGHT
 
-Copyright 2011 Toby Inkster
+Copyright 2011-2012 Toby Inkster
 
 This library is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
